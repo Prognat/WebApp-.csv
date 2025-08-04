@@ -1,6 +1,4 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-
 
 # Anzahl an Gleitkommastellen werden auf 15 gesetzt
 pd.set_option('display.precision', 15)
@@ -29,16 +27,3 @@ def load_data(file_path):
 
 df = load_data('Ex1_HP_Diff.csv')
 print(df)
-
-# Plotten der Daten
-"""
-x_label, y_label = df.columns[:2] # [:2] = Nimmt die ersten 2 Wörter als x und y Achse 
-
-plt.figure(figsize=(10, 6))
-plt.plot(df[x_label], df[y_label])
-plt.xlabel(x_label)
-plt.ylabel(y_label)
-plt.grid(True)
-plt.tight_layout()
-plt.show()
-"""
