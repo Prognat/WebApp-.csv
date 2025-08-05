@@ -9,27 +9,17 @@ from io import StringIO
 def load_data(file_path):
     lines = file_path.splitlines()
 
-    delimiters = [',', ';']
-    
-    header_index = None
-    delimiter_used = None
-    
-    for delim in delimiters:
-        for i in range(len(lines)):
-            if delim in lines[i]:
-                try:
-                    # Checkt ob die Zeile Darunter Nur aus Zahlen besteht
-                    _ = [float(x) for x in lines[i + 1].strip().split(delim)]
-                    header_index = i
-                    delimiter_used = delim
-                    break
-                except (ValueError, IndexError):
-                    continue
-        if header_index is not None:
-            break
-    
-    if header_index is None or delimiter_used is None:
-        raise ValueError("Header not found or unsupported delimiter.")
+    for i in range(len(lines)):
+        if ',' in lines[i]:
+            try:
+                # Checkt ob die Zeile darunter nur voller Zahlen ist um sicherzustellen, dass es sich um die Masseneinheiten handelt
+                _ = [float(x) for x in lines[i + 1].strip().split(',')]
+                header_index = i
+                break
+            except ValueError:
+                continue
+    else:
+        raise ValueError("Header nicht gefunden.")
 
     data_str = "\n".join(lines[header_index:]) # Verwandelt die Daten in einen String bsp: "TIME,CH1\n1,1\n..."
     df = pd.read_csv(StringIO(data_str))
