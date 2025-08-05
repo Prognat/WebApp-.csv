@@ -48,6 +48,11 @@ y_axis_select = Select(
     styles={"margin-bottom": "20px"}
 )
 
+Warning_Message = Div(
+    text="!!! You Cant Upload Large Files !!!",
+    styles={"font-size": "15px", "color": "#555", "margin-top": "20px"}
+)
+
 # Callback für Dropdown-Auswahl der Y-Achse
 def update_plot_y_axis(attr, old, new):
     if new is None or new == "":
@@ -111,6 +116,7 @@ controls = column(
     file_input,
     status_div,
     y_axis_select,
+    Warning_Message,
     width=300,
     sizing_mode="fixed",
     styles={
