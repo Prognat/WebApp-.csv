@@ -27,7 +27,7 @@ def load_data(file_path):
 
 source = ColumnDataSource(data=dict(x=[], y=[])) # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind)
 
-plot = figure(title="CSV Data Plot", height=800, width=800)
+plot = figure(title="CSV Data Plot", height=800, width=1800, output_backend="webgl")
 plot.line('x', 'y', source=source, line_width=2) # Daten von source werden als Linie geplottet
 
 # UI-Elemente
