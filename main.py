@@ -1,12 +1,13 @@
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, TextInput, Button, Div
+from bokeh.models import ColumnDataSource, FileInput, Button, Div
 from bokeh.io import curdoc
 from bokeh.layouts import column
+import base64
+from io import StringIO
 
 def load_data(file_path):
-    with open(file_path, 'r') as file:
-        lines = file.readlines()
+    lines = file_path.splitlines()
 
     for i in range(len(lines)):
         if ',' in lines[i]:
@@ -20,7 +21,6 @@ def load_data(file_path):
     else:
         raise ValueError("Header nicht gefunden.")
 
-    from io import StringIO
     data_str = "\n".join(lines[header_index:]) # Verwandelt die Daten in einen String bsp: "TIME,CH1\n1,1\n..."
     df = pd.read_csv(StringIO(data_str))
     return df
@@ -31,18 +31,19 @@ plot = figure(title="CSV Data Plot", height=800, width=1800, output_backend="web
 plot.line('x', 'y', source=source, line_width=2) # Daten von source werden als Linie geplottet
 
 # UI-Elemente
-file_path_input = TextInput(value="", title="Enter path to .csv file:")
-load_button = Button(label="Load .csv")
-status_div = Div(text="Enter a valid path and press Load")
+file_input = FileInput(accept=".csv")
+status_div = Div(text="Upload a .csv file to plot data")
 
 # Funktion zum Laden der Daten
-def load_file():
-    path = file_path_input.value.strip()
-    if not path:
-        status_div.text = "Please enter a file path."
+def load_file(attr, old, new):
+    if not new:
+        status_div.text = "No File Uploaded."
+        source.data = dict(x=[], y=[])
         return
     try:
-        df = load_data(path)
+        decoded = base64.b64decode(new).decode('utf-8')
+
+        df = load_data(decoded)
         x = df.iloc[:, 0] # Wählt die erste Spalte aus
         y = df.iloc[:, 1]
         source.data = dict(x=x, y=y) # Aktualisiert die Daten im Plot
@@ -55,7 +56,7 @@ def load_file():
         status_div.text = f"Error loading file: {e}"
         source.data = dict(x=[], y=[]) # Cleart Plot
 
-load_button.on_click(load_file)
+file_input.on_change("value", load_file)
 
-curdoc().add_root(column(file_path_input, load_button, status_div, plot))
+curdoc().add_root(column(file_input, status_div, plot))
 curdoc().title = "CSV WebApp"
