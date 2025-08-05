@@ -56,21 +56,38 @@ def load_file(attr, old, new):
         return
     try:
         decoded = base64.b64decode(new).decode('utf-8')
-
         df = load_data(decoded)
+        current_df = df
+
         x = df.iloc[:, 0] # Wählt die erste Spalte aus
-        y = df.iloc[:, 1]
+        
+        # Wenn es mehr als zwei Spalten gibt, gibt es eine Auswahl für die Y-Achse
+        if len(df.columns) > 2:
+            options = list(df.columns[1:])
+            y_axis_select.options = options
+            y_axis_select.value = options[0]
+            y = df[options[0]]
+        else:
+            y_axis_select.options = []
+            y_axis_select.value = None
+            y = df.iloc[:, 1]
+
         source.data = dict(x=x, y=y) # Aktualisiert die Daten im Plot
 
         plot.xaxis.axis_label = df.columns[0] # Setzt die Beschriftung der X-Achse
-        plot.yaxis.axis_label = df.columns[1]
+        plot.yaxis.axis_label = y_axis_select.value if y_axis_select.value else df.columns[1] # Wird zu was Ausgewählt wird ansonstens die zweite Spalte
 
         status_div.text = f"Loaded and plotting columns: {df.columns[0]} vs {df.columns[1]} (Showing {len(df)} points)"
     except Exception as e:
         status_div.text = f"Error loading file: {e}"
         source.data = dict(x=[], y=[]) # Cleart Plot
+        y_axis_select.options = []
+        y_axis_select.value = None
 
 file_input.on_change("value", load_file)
+y_axis_select.on_change("value", update_plot_y_axis)
 
-curdoc().add_root(column(file_input, status_div, plot))
+# Layout mit Dropdown Sehbar aber anfangs leer
+layout = column(file_input, status_div, y_axis_select, plot)
+curdoc().add_root(layout)
 curdoc().title = "CSV WebApp"
