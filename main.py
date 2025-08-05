@@ -4,11 +4,6 @@ from bokeh.models import ColumnDataSource, TextInput, Button, Div
 from bokeh.io import curdoc
 from bokeh.layouts import column
 
-# Anzahl an Gleitkommastellen werden auf 15 gesetzt
-pd.set_option('display.precision', 15)
-# Setzt die Anzeige von Gleitkommazahlen auf 15 signifikante Stellen (entfernt unnötige Nullen)
-pd.set_option('display.float_format', lambda x: f'{x:.15g}')
-
 def load_data(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -32,7 +27,7 @@ def load_data(file_path):
 
 source = ColumnDataSource(data=dict(x=[], y=[])) # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind)
 
-plot = figure(title="CSV Data Plot", height=300, width=300)
+plot = figure(title="CSV Data Plot", height=800, width=800)
 plot.line('x', 'y', source=source, line_width=2) # Daten von source werden als Linie geplottet
 
 # UI-Elemente
@@ -54,6 +49,8 @@ def load_file():
 
         plot.xaxis.axis_label = df.columns[0] # Setzt die Beschriftung der X-Achse
         plot.yaxis.axis_label = df.columns[1]
+
+        status_div.text = f"Loaded and plotting columns: {df.columns[0]} vs {df.columns[1]} (Showing {len(df)} points)"
     except Exception as e:
         status_div.text = f"Error loading file: {e}"
         source.data = dict(x=[], y=[]) # Cleart Plot
