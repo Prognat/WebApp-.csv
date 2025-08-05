@@ -38,5 +38,20 @@ file_path_input = TextInput(value="", title="Enter path to .csv file:")
 load_button = Button(label="Load .csv")
 status_div = Div(text="Enter a valid path and press Load")
 
-df = load_data('Ex1_HP_Diff.csv')
-print(df)
+# Funktion zum Laden der Daten
+def load_file():
+    path = file_path_input.value.strip()
+    if not path:
+        status_div.text = "Please enter a file path."
+        return
+    try:
+        df = load_data(path)
+        x = df.iloc[:, 0] # Wählt die erste Spalte aus
+        y = df.iloc[:, 1]
+        source.data = dict(x=x, y=y) # Aktualisiert die Daten im Plot
+
+        plot.xaxis.axis_label = df.columns[0] # Setzt die Beschriftung der X-Achse
+        plot.yaxis.axis_label = df.columns[1]
+    except Exception as e:
+        status_div.text = f"Error loading file: {e}"
+        source.data = dict(x=[], y=[]) # Cleart Plot
