@@ -1,6 +1,6 @@
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource
+from bokeh.models import ColumnDataSource, TextInput, Button, Div
 
 # Anzahl an Gleitkommastellen werden auf 15 gesetzt
 pd.set_option('display.precision', 15)
@@ -32,6 +32,11 @@ source = ColumnDataSource(data=dict(x=[], y=[])) # Hier werden die Daten für da
 
 plot = figure(title="CSV Data Plot", height=300, width=300)
 plot.line('x', 'y', source=source, line_width=2) # Daten von source werden als Linie geplottet
+
+# UI-Elemente
+file_path_input = TextInput(value="", title="Enter path to .csv file:")
+load_button = Button(label="Load .csv")
+status_div = Div(text="Enter a valid path and press Load")
 
 df = load_data('Ex1_HP_Diff.csv')
 print(df)
