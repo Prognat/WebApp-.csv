@@ -1,6 +1,6 @@
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, FileInput, Div
+from bokeh.models import ColumnDataSource, FileInput, Div, Select
 from bokeh.io import curdoc
 from bokeh.layouts import column
 import base64
@@ -28,17 +28,31 @@ def load_data(file_path):
 source = ColumnDataSource(data=dict(x=[], y=[])) # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind)
 
 plot = figure(title="CSV Data Plot", height=800, width=1800, output_backend="webgl")
-plot.line('x', 'y', source=source, line_width=2) # Daten von source werden als Linie geplottet
+line_renderer = plot.line('x', 'y', source=source, line_width=2) # Daten von source werden als Linie geplottet
 
 # UI-Elemente
 file_input = FileInput(accept=".csv")
 status_div = Div(text="Upload a .csv file to plot data")
 
+y_axis_select = Select(title="Choose Y-Axis", options=[], value=None)
+
+def update_plot_y_axis(attr, old, new):
+    if new is None or new == "":
+        return
+    y = current_df[new]
+    source.data = dict(x=current_df.iloc[:, 0], y=y)
+    plot.yaxis.axis_label = new
+    status_div.text = f"Showing columns: {current_df.columns[0]} vs {new} (Showing {len(current_df)} points)"
+
 # Funktion zum Laden der Daten
 def load_file(attr, old, new):
+    global current_df
+
     if not new:
         status_div.text = "No File Uploaded."
         source.data = dict(x=[], y=[])
+        y_axis_select.options = []
+        y_axis_select.value = None
         return
     try:
         decoded = base64.b64decode(new).decode('utf-8')
