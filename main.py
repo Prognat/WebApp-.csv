@@ -1,6 +1,8 @@
 import pandas as pd
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, TextInput, Button, Div
+from bokeh.io import curdoc
+from bokeh.layouts import column
 
 # Anzahl an Gleitkommastellen werden auf 15 gesetzt
 pd.set_option('display.precision', 15)
@@ -55,3 +57,8 @@ def load_file():
     except Exception as e:
         status_div.text = f"Error loading file: {e}"
         source.data = dict(x=[], y=[]) # Cleart Plot
+
+load_button.on_click(load_file)
+
+curdoc().add_root(column(file_path_input, load_button, status_div, plot))
+curdoc().title = "CSV WebApp"
