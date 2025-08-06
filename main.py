@@ -73,8 +73,12 @@ def update_plot_y_axis(attr, old, new):
     plot.yaxis.axis_label = new
     status_div.text = f"Showing latest file column: {current_df.columns[0]} vs {new} (Showing {len(current_df)} points)"
 
+file_counter = 0 # Zähler für die Namen in der Legende
+
 # Funktion zum Laden der Daten
 def load_file(attr, old, new):
+    global file_counter
+
     if not new:
         status_div.text = "No File Uploaded."
         return
@@ -90,9 +94,12 @@ def load_file(attr, old, new):
         y_col = df.columns[1] # Zum speichern des Y-Achsen Spaltennamens
         y = df[y_col]
 
+        file_counter += 1
+        file_name = f"File {file_counter}"
+
         color = color_palette[len(curdoc().all_data) % len(color_palette)]  # Wählt eine Farbe aus der Palette basierend auf der Anzahl der geladenen Dateien
 
-        curdoc().all_data.append(dict(df=df, x=x, y=y, label=y_col, color=color)) # Speicher Daten
+        curdoc().all_data.append(dict(df=df, x=x, y=y, label=file_name, color=color)) # Speicher Daten
 
         # Updated source.data
         source.data = dict(
@@ -118,7 +125,7 @@ def load_file(attr, old, new):
         plot.xaxis.axis_label = df.columns[0]  # Setzt die Beschriftung der X-Achse
         plot.yaxis.axis_label = y_axis_select.value if y_axis_select.value else y_col  # Auswählbar ansonsten die erste Y-Achse
 
-        status_div.text = f"Loaded and plotting {len(curdoc().all_data)} file(s), latest: {df.columns[0]} vs {plot.yaxis.axis_label} (Showing {len(df)} points)"
+        status_div.text = f"Loaded and plotting {len(curdoc().all_data)} file(s), latest: {file_name} vs {plot.yaxis.axis_label} (Showing {len(df)} points)"
     except Exception as e:
         status_div.text = f"<b style='color: red;'>Error loading file:</b> {e}"
         source.data = dict(x=[], y=[])  # Cleart Plot
