@@ -61,17 +61,56 @@ def draw_lines():
     for x, y, color, label in zip(source.data['xs'], source.data['ys'], source.data['colors'], source.data['labels']):
         plot.line(x, y, line_width=2, color=color, legend_label=label)
 
+# Funktion die Auswählbaren Y-Achsen aktualisiert  
+def update_y_axis_options():
+    if not hasattr(curdoc(), "all_data"):
+        return
+    
+    seen = set()
+    unique_cols = []
+    for d in curdoc().all_data:
+        for col in d['df'].columns[1:]:
+            if col.lower() not in seen:
+                seen.add(col.lower())
+                unique_cols.append(col)
+
+    y_axis_select.options = unique_cols
+    if unique_cols:
+        y_axis_select.value = unique_cols[0] # Setzt den Standardwert auf die erste Spalte
+        y_axis_select.disabled = False
+    else:
+        y_axis_select.value = None
+        y_axis_select.disabled = True
+
 # Callback für Dropdown-Auswahl der Y-Achse
 def update_plot_y_axis(attr, old, new):
-    if new is None or new == "":
+    if not new:
         return
-    current_df = curdoc().all_data[-1]['df']  # Nimmt die zuletzt geladene Datei
-    y = current_df[new]
-    curdoc().all_data[-1]['y'] = y  # Aktualisiert die Y-Daten der zuletzt geladenen Datei
-    source.data['ys'][-1] = y
+    
+    new_lower = new.lower()
+    xs, ys, labels, colors = [], [], [], []
+
+    for d in curdoc().all_data:
+        match_col = None
+        # Sucht nach der Spalte, die mit der neuen Y-Achse übereinstimmt
+        for col in d['df'].columns[1:]:
+            if col.lower() == new_lower:
+                match_col = col
+                break
+        # Zeigt nur die Spalten an, die mit der neuen Y-Achse übereinstimmen
+        if match_col:
+            xs.append(d['df'].iloc[:, 0])
+            ys.append(d['df'][match_col])
+            labels.append(d['label'])
+            colors.append(d['color'])
+
+    source.data = dict(xs=xs, ys=ys, labels=labels, colors=colors)
     draw_lines()
     plot.yaxis.axis_label = new
-    status_div.text = f"Showing latest file column: {current_df.columns[0]} vs {new} (Showing {len(current_df)} points)"
+    if ys:
+        status_div.text = f"Showing {len(ys[0])} points for Y-axis: {new}"
+    else:
+        status_div.text = f"No data available for Y-axis: {new}"
 
 file_counter = 0 # Zähler für die Namen in der Legende
 
@@ -91,41 +130,19 @@ def load_file(attr, old, new):
         df = load_data(decoded)
 
         x = df.iloc[:, 0]  # Wählt die erste Spalte aus
-        y_col = df.columns[1] # Zum speichern des Y-Achsen Spaltennamens
-        y = df[y_col]
-
         file_counter += 1
         file_name = f"File {file_counter}"
 
         color = color_palette[len(curdoc().all_data) % len(color_palette)]  # Wählt eine Farbe aus der Palette basierend auf der Anzahl der geladenen Dateien
 
-        curdoc().all_data.append(dict(df=df, x=x, y=y, label=file_name, color=color)) # Speicher Daten
+        curdoc().all_data.append(dict(df=df, x=x, label=file_name, color=color)) # Speicher Daten
 
-        # Updated source.data
-        source.data = dict(
-            xs=[d["x"] for d in curdoc().all_data],
-            ys=[d["y"] for d in curdoc().all_data],
-            labels=[d["label"] for d in curdoc().all_data],
-            colors=[d["color"] for d in curdoc().all_data]
-        )
+        update_y_axis_options()
 
-        # DropDown nur für letzte Datei
-        if len(df.columns) > 2:
-            options = list(df.columns[1:])
-            y_axis_select.options = options
-            y_axis_select.value = options[0]
-            y_axis_select.disabled = False
-        else:
-            y_axis_select.options = []
-            y_axis_select.value = None
-            y_axis_select.disabled = True
+        update_plot_y_axis(None, None, y_axis_select.value)
 
-        draw_lines()
-
-        plot.xaxis.axis_label = df.columns[0]  # Setzt die Beschriftung der X-Achse
-        plot.yaxis.axis_label = y_axis_select.value if y_axis_select.value else y_col  # Auswählbar ansonsten die erste Y-Achse
-
-        status_div.text = f"Loaded and plotting {len(curdoc().all_data)} file(s), latest: {file_name} vs {plot.yaxis.axis_label} (Showing {len(df)} points)"
+        plot.xaxis.axis_label = df.columns[0]
+        status_div.text = f"Loaded {len(curdoc().all_data)} file(s), latest: {file_name} (Showing {len(df)} points)"
     except Exception as e:
         status_div.text = f"<b style='color: red;'>Error loading file:</b> {e}"
         source.data = dict(x=[], y=[])  # Cleart Plot
