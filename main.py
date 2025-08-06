@@ -5,6 +5,9 @@ from bokeh.io import curdoc
 from bokeh.layouts import column, row, Spacer
 import base64
 from io import StringIO
+from bokeh.palettes import Category10 # Für Farben der Linien
+
+color_palette = Category10[10]  # Palette für die Farben der Linien
 
 # Funktion zum Einlesen der CSV-Datei (auch wenn Kommentare davorstehen etc.)
 def load_data(file_path):
@@ -26,7 +29,7 @@ def load_data(file_path):
     df = pd.read_csv(StringIO(data_str))
     return df
 
-source = ColumnDataSource(data=dict(x=[], y=[]))  # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind)
+source = ColumnDataSource(data=dict(xs=[], ys=[], labels=[], colors=[]))  # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind) // xs = Liste von X-Werden für jede Datei, labels = DateiName/Spaltennamen für die Legende, colors = Farbe der Linie
 
 plot = figure(title="CSV Data Plot", height=600, width=1000, output_backend="webgl", sizing_mode="stretch_width")
 line_renderer = plot.line('x', 'y', source=source, line_width=2)  # Daten von source werden als Linie geplottet
