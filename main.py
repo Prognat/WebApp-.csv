@@ -5,31 +5,47 @@ from bokeh.io import curdoc
 from bokeh.layouts import column, row, Spacer
 import base64
 from io import StringIO
+import csv
 from bokeh.palettes import Category10 # Für Farben der Linien
 
 color_palette = Category10[10]  # Palette für die Farben der Linien
 
 # Funktion zum Einlesen der CSV-Datei (auch wenn Kommentare davorstehen etc.)
-def load_data(file_path):
-    lines = file_path.splitlines()
+def load_data(data_str):
+
+    # Entferne überflüssige Trennzeichen am Zeilenende
+    lines = [line.rstrip(';,\t| ') for line in data_str.splitlines() if line.strip()]
+
+    # Nimmt 10 Zeilen als Beispiel, um das richtige Trennzeichen zu finden (für csv.Sniffer)
+    sample = "\n".join(lines[:10])
+
+    # Versucht das Trennzeichen automatisch zu erkennen
+    sniffer = csv.Sniffer()
+    try:
+        dialect = sniffer.sniff(sample)
+        delimiter = dialect.delimiter
+    except Exception:
+        delimiter = ',' # Standard-Trennzeichen, falls Erkennung fehlschlägt
 
     for i in range(len(lines)):
-        if ',' in lines[i]:
-            try:
-                # Checkt ob die Zeile darunter nur voller Zahlen ist um sicherzustellen, dass es sich um die Masseneinheiten handelt
-                _ = [float(x) for x in lines[i + 1].strip().split(',')]
-                header_index = i
-                break
-            except ValueError:
-                continue
+        try:
+            # Um den Header zu finden versucht es die Nächste Zeile als float zu parsen
+            _ = [float(x.strip()) for x in lines[i + 1].split(delimiter)]
+            header_index = i
+            break
+        except:
+            continue
     else:
         raise ValueError("Header nicht gefunden.")
+    
+    cleaned_str = "\n".join(lines[header_index:])  # Entfernt alle Zeilen vor dem Header
+    df = pd.read_csv(StringIO(cleaned_str), delimiter=delimiter)
 
-    data_str = "\n".join(lines[header_index:])  # Verwandelt die Daten in einen String bsp: "TIME,CH1\n1,1\n..."
-    df = pd.read_csv(StringIO(data_str))
+    df = df.dropna(axis=1, how='all')  # Entfernt leere Spalten
+    df.columns = [col.strip() for col in df.columns]  # Entfernt Leerzeichen in den Spaltennamen
     return df
 
-source = ColumnDataSource(data=dict(xs=[], ys=[], labels=[], colors=[]))  # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind) // xs = Liste von X-Werden für jede Datei, labels = DateiName/Spaltennamen für die Legende, colors = Farbe der Linie
+source = ColumnDataSource(data=dict(xs=[], ys=[], labels=[], colors=[]))  # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind) // xs = Liste von X-Werten für jede Datei, labels = DateiName/Spaltennamen für die Legende, colors = Farbe der Linie
 
 plot = figure(title="CSV Data Plot", height=600, width=1000, output_backend="webgl", sizing_mode="stretch_width")
 
