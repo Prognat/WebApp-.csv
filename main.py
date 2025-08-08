@@ -6,13 +6,12 @@ from bokeh.layouts import column, row, Spacer
 import base64
 from io import StringIO
 import csv
-from bokeh.palettes import Category10 # Für Farben der Linien
+from bokeh.palettes import Category10  # Für Farben der Linien
 
 color_palette = Category10[10]  # Palette für die Farben der Linien
 
 # Funktion zum Einlesen der CSV-Datei (auch wenn Kommentare davorstehen etc.)
 def load_data(data_str):
-
     # Entferne überflüssige Trennzeichen am Zeilenende
     lines = [line.rstrip(';,\t| ') for line in data_str.splitlines() if line.strip()]
 
@@ -25,11 +24,12 @@ def load_data(data_str):
         dialect = sniffer.sniff(sample)
         delimiter = dialect.delimiter
     except Exception:
-        delimiter = ',' # Standard-Trennzeichen, falls Erkennung fehlschlägt
+        delimiter = ','  # Standard-Trennzeichen, falls Erkennung fehlschlägt
 
+    # Suche Header-Index (Zeile, nach der die Daten beginnen)
     for i in range(len(lines)):
         try:
-            # Um den Header zu finden versucht es die Nächste Zeile als float zu parsen
+            # Um den Header zu finden, versucht es, die nächste Zeile als float zu parsen
             _ = [float(x.strip()) for x in lines[i + 1].split(delimiter)]
             header_index = i
             break
@@ -38,23 +38,33 @@ def load_data(data_str):
     else:
         raise ValueError("Header nicht gefunden.")
     
-    cleaned_str = "\n".join(lines[header_index:])  # Entfernt alle Zeilen vor dem Header
+    cleaned_str = "\n".join(lines[header_index:])  # Entfernt alle Zeilen vor dem Header und verwandelt die Daten in einen String
+
     df = pd.read_csv(StringIO(cleaned_str), delimiter=delimiter)
 
     df = df.dropna(axis=1, how='all')  # Entfernt leere Spalten
     df.columns = [col.strip() for col in df.columns]  # Entfernt Leerzeichen in den Spaltennamen
     return df
 
-source = ColumnDataSource(data=dict(xs=[], ys=[], labels=[], colors=[]))  # Hier werden die Daten für das Plot gespeichert (Welche Nummern auf den Achsen sind) // xs = Liste von X-Werten für jede Datei, labels = DateiName/Spaltennamen für die Legende, colors = Farbe der Linie
+source = ColumnDataSource(data=dict(xs=[], ys=[], labels=[], colors=[]))  # Hier werden die Daten für das Plot gespeichert
 
-plot = figure(title="CSV Data Plot", height=600, width=1000, output_backend="webgl", sizing_mode="stretch_width")
+plot = figure(
+    title="CSV Data Plot", 
+    height=600, width=1000, 
+    output_backend="webgl", 
+    sizing_mode="stretch_width"
+)
 
 # UI-Elemente
-file_input = FileInput(accept=".csv", styles={"margin-bottom": "10px"})  # Ermöglicht das Hochladen der Datei
+file_input = FileInput(
+    accept=".csv", 
+    styles={"margin-bottom": "10px"}
+)  # Ermöglicht das Hochladen der Datei
 
 status_div = Div(
     text="Upload a .csv file to plot data",
-    styles={"font-size": "14px", "color": "#555", "margin-bottom": "15px"}  # Zeigt Statusnachricht an
+    styles={"font-size": "14px", "color": "#555", "margin-bottom": "15px"}  
+    # Zeigt Statusnachricht an
 )
 
 y_axis_select = Select(
@@ -92,7 +102,7 @@ def update_y_axis_options():
 
     y_axis_select.options = unique_cols
     if unique_cols:
-        y_axis_select.value = unique_cols[0] # Setzt den Standardwert auf die erste Spalte
+        y_axis_select.value = unique_cols[0]  # Setzt den Standardwert auf die erste Spalte
         y_axis_select.disabled = False
     else:
         y_axis_select.value = None
@@ -123,12 +133,13 @@ def update_plot_y_axis(attr, old, new):
     source.data = dict(xs=xs, ys=ys, labels=labels, colors=colors)
     draw_lines()
     plot.yaxis.axis_label = new
+
     if ys:
         status_div.text = f"Showing {len(ys[0])} points for Y-axis: {new}"
     else:
         status_div.text = f"No data available for Y-axis: {new}"
 
-file_counter = 0 # Zähler für die Namen in der Legende
+file_counter = 0  # Zähler für die Namen in der Legende
 
 # Funktion zum Laden der Daten
 def load_file(attr, old, new):
@@ -139,7 +150,7 @@ def load_file(attr, old, new):
         return
     
     if not hasattr(curdoc(), "all_data"):
-        curdoc().all_data = [] # Liste zum Speichern aller geladenen Daten
+        curdoc().all_data = []  # Liste zum Speichern aller geladenen Daten
 
     try:
         decoded = base64.b64decode(new).decode('utf-8')
@@ -149,19 +160,21 @@ def load_file(attr, old, new):
         file_counter += 1
         file_name = f"File {file_counter}"
 
-        color = color_palette[len(curdoc().all_data) % len(color_palette)]  # Wählt eine Farbe aus der Palette basierend auf der Anzahl der geladenen Dateien
+        color = color_palette[len(curdoc().all_data) % len(color_palette)]  
+        # Wählt eine Farbe aus der Palette basierend auf der Anzahl der geladenen Dateien
 
-        curdoc().all_data.append(dict(df=df, x=x, label=file_name, color=color)) # Speicher Daten
+        curdoc().all_data.append(dict(df=df, x=x, label=file_name, color=color))  # Speichert Daten
 
         update_y_axis_options()
 
         update_plot_y_axis(None, None, y_axis_select.value)
 
         plot.xaxis.axis_label = df.columns[0]
+
         status_div.text = f"Loaded {len(curdoc().all_data)} file(s), latest: {file_name} (Showing {len(df)} points)"
     except Exception as e:
         status_div.text = f"<b style='color: red;'>Error loading file:</b> {e}"
-        source.data = dict(x=[], y=[])  # Cleart Plot
+        source.data = dict(xs=[], ys=[], labels=[], colors=[])  # Cleart Plot
         y_axis_select.options = []
         y_axis_select.value = None
         y_axis_select.disabled = True
@@ -170,7 +183,7 @@ def load_file(attr, old, new):
 file_input.on_change("value", load_file)
 y_axis_select.on_change("value", update_plot_y_axis)
 
-# Layout mit Dropdown Sehbar aber anfangs leer
+# Layout mit Dropdown sichtbar aber anfangs leer
 controls = column(
     Div(text="<h2>CSV Data Plotter</h2>", styles={"margin-bottom": "10px"}),
     file_input,
