@@ -1,5 +1,9 @@
-WebApp die .csv Dateien einliest und die Daten auf einen Plot darstellt
+# CSV Plotter
 
-Um die WebApp zu starten
-bokeh serve main.py --show
-ins Terminal schreiben
+### WebApp die .csv Dateien einliest und die Daten auf einen Plot darstellt
+
+## Verwendung
+
+Um die WebApp zu starten schreibe dies ins Terminal:
+
+    bokeh serve main.py --show
