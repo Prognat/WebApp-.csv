@@ -54,8 +54,6 @@ def load_data(data_str, skip_rows=0):
     # Entferne überflüssige Trennzeichen am Zeilenende
     lines = [line.rstrip(';,\t| ') for line in data_str.splitlines() if line.strip()]
 
-    lines = lines[skip_rows:]  # Überspringt die angegebenen Zeilen
-
     sample = "\n".join(lines[:10])
 
     # Versucht das Trennzeichen automatisch zu erkennen
@@ -76,7 +74,12 @@ def load_data(data_str, skip_rows=0):
     else:
         raise ValueError("Header nicht gefunden.")
     
-    cleaned_str = "\n".join(lines[header_index:])  # Entfernt alle Zeilen vor dem Header und verwandelt die Daten in einen String
+    data_lines = lines[header_index:]
+
+    if skip_rows > 0:
+        data_lines = [data_lines[0]] + data_lines[1 + skip_rows:]
+
+    cleaned_str = "\n".join(data_lines)  # Entfernt alle Zeilen vor dem Header und verwandelt die Daten in einen String
 
     df = pd.read_csv(StringIO(cleaned_str), delimiter=delimiter)
 
@@ -136,11 +139,6 @@ def update_plot_y_axis(attr, old, new):
     source.data = dict(xs=xs, ys=ys, labels=labels, colors=colors)
     draw_lines()
     plot.yaxis.axis_label = new
-
-    if ys:
-        status_div.text = f"Showing {len(ys[0])} points for Y-axis: {new}"
-    else:
-        status_div.text = f"No data available for Y-axis: {new}"
 
 file_counter = 0  # Zähler für die Namen in der Legende
 
