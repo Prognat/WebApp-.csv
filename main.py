@@ -1,6 +1,6 @@
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, FileInput, Div, Select, Spinner
+from bokeh.models import ColumnDataSource, FileInput, Div, Select, Spinner, DataTable, TableColumn, NumberEditor
 from bokeh.io import curdoc
 from bokeh.layouts import column, row, Spacer
 import base64
@@ -11,6 +11,7 @@ from bokeh.palettes import Category10  # Für Farben der Linien
 color_palette = Category10[10]  # Palette für die Farben der Linien
 
 source = ColumnDataSource(data=dict(xs=[], ys=[], labels=[], colors=[]))  # Hier werden die Daten für das Plot gespeichert
+transform_source = ColumnDataSource(data=dict(label=[], shift=[], scale=[]))  # Hier werden die Transformationsdaten gespeichert
 
 plot = figure(
     title="CSV Data Plot", 
@@ -44,10 +45,17 @@ y_axis_select = Select(
     styles={"margin-bottom": "20px"}
 )
 
-Warning_Message = Div(
-    text="!!! You Cant Upload Large Files !!!",
-    styles={"font-size": "15px", "color": "#555", "margin-top": "20px"}
-)
+transform_table = DataTable(
+    source=transform_source,
+    columns=[
+        TableColumn(field="label", title="Signal"),
+        TableColumn(field="shift", title="Time Shift", editor=NumberEditor()),
+        TableColumn(field="scale", title="Y-Scale", editor=NumberEditor())
+    ],
+    editable=True,
+    height=200,
+    width=400
+)  # Tabelle für die Transformationseinstellungen (Zeitverschiebung und Skalierung)
 
 # Funktion zum Einlesen der CSV-Datei (auch wenn Kommentare davorstehen etc.)
 def load_data(data_str, skip_rows=0):
@@ -173,7 +181,7 @@ def load_file(attr, old, new):
 
         plot.xaxis.axis_label = df.columns[0]
 
-        status_div.text = f"Loaded {len(curdoc().all_data)} file(s), latest: {file_name} (Showing {len(df)} points)"
+        status_div.text = f"Loaded {len(curdoc().all_data)} file(s), latest: {file_name} (Showing {len(df) - 1} points)"
     except Exception as e:
         status_div.text = f"<b style='color: red;'>Error loading file:</b> {e}"
         source.data = dict(xs=[], ys=[], labels=[], colors=[])  # Cleart Plot
@@ -192,7 +200,7 @@ controls = column(
     skip_rows_input,
     status_div,
     y_axis_select,
-    Warning_Message,
+    transform_table,
     width=300,
     sizing_mode="fixed",
     styles={
