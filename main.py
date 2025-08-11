@@ -1,6 +1,6 @@
 import pandas as pd
 from bokeh.plotting import figure
-from bokeh.models import ColumnDataSource, FileInput, Div, Select
+from bokeh.models import ColumnDataSource, FileInput, Div, Select, Spinner
 from bokeh.io import curdoc
 from bokeh.layouts import column, row, Spacer
 import base64
@@ -9,42 +9,6 @@ import csv
 from bokeh.palettes import Category10  # Für Farben der Linien
 
 color_palette = Category10[10]  # Palette für die Farben der Linien
-
-# Funktion zum Einlesen der CSV-Datei (auch wenn Kommentare davorstehen etc.)
-def load_data(data_str):
-    # Entferne überflüssige Trennzeichen am Zeilenende
-    lines = [line.rstrip(';,\t| ') for line in data_str.splitlines() if line.strip()]
-
-    # Nimmt 10 Zeilen als Beispiel, um das richtige Trennzeichen zu finden (für csv.Sniffer)
-    sample = "\n".join(lines[:10])
-
-    # Versucht das Trennzeichen automatisch zu erkennen
-    sniffer = csv.Sniffer()
-    try:
-        dialect = sniffer.sniff(sample)
-        delimiter = dialect.delimiter
-    except Exception:
-        delimiter = ','  # Standard-Trennzeichen, falls Erkennung fehlschlägt
-
-    # Suche Header-Index (Zeile, nach der die Daten beginnen)
-    for i in range(len(lines)):
-        try:
-            # Um den Header zu finden, versucht es, die nächste Zeile als float zu parsen
-            _ = [float(x.strip()) for x in lines[i + 1].split(delimiter)]
-            header_index = i
-            break
-        except:
-            continue
-    else:
-        raise ValueError("Header nicht gefunden.")
-    
-    cleaned_str = "\n".join(lines[header_index:])  # Entfernt alle Zeilen vor dem Header und verwandelt die Daten in einen String
-
-    df = pd.read_csv(StringIO(cleaned_str), delimiter=delimiter)
-
-    df = df.dropna(axis=1, how='all')  # Entfernt leere Spalten
-    df.columns = [col.strip() for col in df.columns]  # Entfernt Leerzeichen in den Spaltennamen
-    return df
 
 source = ColumnDataSource(data=dict(xs=[], ys=[], labels=[], colors=[]))  # Hier werden die Daten für das Plot gespeichert
 
@@ -60,6 +24,10 @@ file_input = FileInput(
     accept=".csv", 
     styles={"margin-bottom": "10px"}
 )  # Ermöglicht das Hochladen der Datei
+
+skip_rows_input = Spinner(
+    title="Skip Rows", low=0, step=1, value=0, width=100
+)  # Anzahl der zu überspringenden Zeilen
 
 status_div = Div(
     text="Upload a .csv file to plot data",
@@ -80,6 +48,41 @@ Warning_Message = Div(
     text="!!! You Cant Upload Large Files !!!",
     styles={"font-size": "15px", "color": "#555", "margin-top": "20px"}
 )
+
+# Funktion zum Einlesen der CSV-Datei (auch wenn Kommentare davorstehen etc.)
+def load_data(data_str, skip_rows=0):
+    # Entferne überflüssige Trennzeichen am Zeilenende
+    lines = [line.rstrip(';,\t| ') for line in data_str.splitlines() if line.strip()]
+
+    lines = lines[skip_rows:]  # Überspringt die angegebenen Zeilen
+
+    sample = "\n".join(lines[:10])
+
+    # Versucht das Trennzeichen automatisch zu erkennen
+    sniffer = csv.Sniffer()
+    try:
+        dialect = sniffer.sniff(sample)
+        delimiter = dialect.delimiter
+    except Exception:
+        delimiter = ','  # Standard-Trennzeichen, falls Erkennung fehlschlägt
+
+    for i in range(len(lines)):
+        try:
+            _ = [float(x.strip()) for x in lines[i + 1].split(delimiter)]
+            header_index = i
+            break
+        except:
+            continue
+    else:
+        raise ValueError("Header nicht gefunden.")
+    
+    cleaned_str = "\n".join(lines[header_index:])  # Entfernt alle Zeilen vor dem Header und verwandelt die Daten in einen String
+
+    df = pd.read_csv(StringIO(cleaned_str), delimiter=delimiter)
+
+    df = df.dropna(axis=1, how='all')  # Entfernt leere Spalten
+    df.columns = [col.strip() for col in df.columns]  # Entfernt Leerzeichen in den Spaltennamen
+    return df
 
 # Funktion zum Zeichnen der Linien im Plot, da Bokeh nicht direkt mehrere Linien gleichzeitig zeichnen kann, wird hier eine Schleife verwendet
 def draw_lines():
@@ -154,7 +157,8 @@ def load_file(attr, old, new):
 
     try:
         decoded = base64.b64decode(new).decode('utf-8')
-        df = load_data(decoded)
+        skip_rows = skip_rows_input.value or 0
+        df = load_data(decoded, skip_rows=skip_rows)
 
         x = df.iloc[:, 0]  # Wählt die erste Spalte aus
         file_counter += 1
@@ -187,6 +191,7 @@ y_axis_select.on_change("value", update_plot_y_axis)
 controls = column(
     Div(text="<h2>CSV Data Plotter</h2>", styles={"margin-bottom": "10px"}),
     file_input,
+    skip_rows_input,
     status_div,
     y_axis_select,
     Warning_Message,
